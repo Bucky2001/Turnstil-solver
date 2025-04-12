@@ -209,7 +209,7 @@ class TurnstileAPIServer:
                 logger.debug(f"Browser {index}: Setting up page data and route")
 
             url_with_slash = url + "/" if not url.endswith("/") else url
-            turnstile_div = f'<div class="cf-turnstile" data-sitekey="{sitekey}"' + (f' data-action="{action}"' if action else '') + (f' data-cdata="{cdata}"' if cdata else '') + '></div>'
+            turnstile_div = f'<div class="cf-turnstile" style="background: white;" data-sitekey="{sitekey}"' + (f' data-action="{action}"' if action else '') + (f' data-cdata="{cdata}"' if cdata else '') + '></div>'
             page_data = self.HTML_TEMPLATE.replace("<!-- cf turnstile -->", turnstile_div)
 
             await page.route(url_with_slash, lambda route: route.fulfill(body=page_data, status=200))
@@ -218,10 +218,7 @@ class TurnstileAPIServer:
             if self.debug:
                 logger.debug(f"Browser {index}: Setting up Turnstile widget dimensions")
 
-            await page.eval_on_selector(
-                "//div[@class='cf-turnstile']",
-                "el => el.style.width = '70px'"
-            )
+            await page.eval_on_selector("//div[@class='cf-turnstile']", "el => el.style.width = '70px'")
 
             if self.debug:
                 logger.debug(f"Browser {index}: Starting Turnstile response retrieval loop")
@@ -232,19 +229,16 @@ class TurnstileAPIServer:
                     if turnstile_check == "":
                         if self.debug:
                             logger.debug(f"Browser {index}: Attempt {_} - No Turnstile response yet")
-
-                        await page.click("//div[@class='cf-turnstile']", timeout=3000)
+                        
+                        await page.locator("//div[@class='cf-turnstile']").click(timeout=1000)
                         await asyncio.sleep(0.5)
                     else:
-                        element = await page.query_selector("[name=cf-turnstile-response]")
-                        if element:
-                            value = await element.get_attribute("value")
-                            elapsed_time = round(time.time() - start_time, 3)
+                        elapsed_time = round(time.time() - start_time, 3)
 
-                            logger.success(f"Browser {index}: Successfully solved captcha - {COLORS.get('MAGENTA')}{value[:10]}{COLORS.get('RESET')} in {COLORS.get('GREEN')}{elapsed_time}{COLORS.get('RESET')} Seconds")
+                        logger.success(f"Browser {index}: Successfully solved captcha - {COLORS.get('MAGENTA')}{turnstile_check[:10]}{COLORS.get('RESET')} in {COLORS.get('GREEN')}{elapsed_time}{COLORS.get('RESET')} Seconds")
 
-                            self.results[task_id] = {"value": value, "elapsed_time": elapsed_time}
-                            self._save_results()
+                        self.results[task_id] = {"value": turnstile_check, "elapsed_time": elapsed_time}
+                        self._save_results()
                         break
                 except:
                     pass
@@ -390,7 +384,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Turnstile API Server")
 
     parser.add_argument('--headless', type=bool, default=True, help='Run the browser in headless mode, without opening a graphical interface. This option requires the --useragent argument to be set (default: True)')
-    parser.add_argument('--useragent', type=str, default='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', help='Specify a custom User-Agent string for the browser')
+    parser.add_argument('--useragent', type=str, default='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36', help='Specify a custom User-Agent string for the browser')
     parser.add_argument('--debug', type=bool, default=False, help='Enable or disable debug mode for additional logging and troubleshooting information (default: False)')
     parser.add_argument('--browser_type', type=str, default='msedge', help='Specify the browser type for the solver. Supported options: chromium, chrome, msedge, camoufox (default: msedge)')
     parser.add_argument('--thread', type=int, default=2, help='Set the number of browser threads to use for multi-threaded mode. Increasing this will speed up execution but requires more resources (default: 2)')

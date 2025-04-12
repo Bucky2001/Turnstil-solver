@@ -6,5 +6,5 @@ cd turnstile-solver
 python3 -m venv myenv
 source myenv/bin/activate
 pip3 install -r requirements.txt
-python -m patchright install msedge
-nohup python3 api_solver.py
+python3 -m patchright install msedge
+nohup python3 api_solver.py &
